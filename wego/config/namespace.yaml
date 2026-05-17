@@ -1,0 +1,14 @@
+robot:
+  namespace: Rescue_Limo_1
+  tf_prefix: Rescue_Limo_1
+
+frames:
+  map: map
+  odom: odom
+  base: base_footprint
+  base_link: base_link
+
+topics:
+  scan: scan
+  odom: odometry/filtered
+  cmd_vel: cmd_vel

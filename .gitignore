@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.bag
+
+navigation2_local/
+OrbbecSDK_ROS2_local/
