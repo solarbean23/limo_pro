@@ -1,18 +1,41 @@
 import os
+import sys
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
-from launch.actions import IncludeLaunchDescription
-from launch.substitutions import PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml
 
+wego_launch_dir = os.path.join(get_package_share_directory('wego'), 'launch')
+if wego_launch_dir not in sys.path:
+    sys.path.append(wego_launch_dir)
+
+from _namespace_util import frame_name, robot_namespace, topic_name
+
+
 def generate_launch_description():
     wego_share_dir = get_package_share_directory('wego')
     wego_nav_share_dir = get_package_share_directory('wego_2d_nav')
+    namespace = robot_namespace()
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    autostart = LaunchConfiguration('autostart')
+    container_name = 'nav2_container'
+    scan_topic = f'/{namespace}/{topic_name("scan", "scan")}' if namespace else f'/{topic_name("scan", "scan")}'
+
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Use simulation clock if true')
+
+    declare_autostart_cmd = DeclareLaunchArgument(
+        'autostart',
+        default_value='true',
+        description='Automatically startup the Nav2 stack')
 
     # setting for rviz configuration path
     rviz_file_name = 'navigation.rviz'
@@ -23,20 +46,40 @@ def generate_launch_description():
     parameter_file_path = os.path.join(wego_nav_share_dir, 'params', parameter_file_name)
 
     # set the map yaml file
-    map_file_name = 'map.yaml'
+    map_file_name = 'my_map.yaml'
     map_file_path = os.path.join(wego_nav_share_dir, 'maps', map_file_name)
 
-    # remapping tf topic
-    remappings = [('/tf', 'tf'), ('/tf_static', 'tf_static')]
+    configured_params = ParameterFile(
+        RewrittenYaml(
+            source_file=parameter_file_path,
+            root_key=namespace,
+            param_rewrites={
+                'use_sim_time': use_sim_time,
+                'autostart': autostart,
+                'yaml_filename': map_file_path,
+                'base_frame_id': frame_name('base_link', 'base_link'),
+                'odom_frame_id': frame_name('odom', 'odom'),
+                'global_frame_id': frame_name('map', 'map'),
+                'robot_base_frame': frame_name('base_link', 'base_link'),
+                'local_frame': frame_name('odom', 'odom'),
+                'odom_topic': topic_name('odom_filtered', 'odometry/filtered'),
+                'local_costmap.local_costmap.ros__parameters.global_frame': frame_name('odom', 'odom'),
+                'local_costmap.local_costmap.ros__parameters.obstacle_layer.scan.topic': scan_topic,
+                'global_costmap.global_costmap.ros__parameters.obstacle_layer.scan.topic': scan_topic,
+            },
+            convert_types=True,
+        ),
+        allow_substs=True,
+    )
 
     # set container for composable node
     nav2_container = Node(
-        name='nav2_container',
+        name=container_name,
         package='rclcpp_components',
         executable='component_container_isolated',
-        parameters=[ParameterFile(parameter_file_path), {'autostart': True}],
+        namespace=namespace,
+        parameters=[configured_params, {'autostart': autostart}],
         arguments=['--ros-args', '--log-level', 'info'],
-        remappings=remappings,
         output='screen',
     )
 
@@ -49,7 +92,11 @@ def generate_launch_description():
         ]),
         launch_arguments={
             'map' : map_file_path,
-            'params_file': parameter_file_path
+            'params_file': parameter_file_path,
+            'namespace': namespace,
+            'container_name': container_name,
+            'use_sim_time': use_sim_time,
+            'autostart': autostart,
         }.items()
     )
 
@@ -61,7 +108,11 @@ def generate_launch_description():
             'navigation_only_launch.py',
         ]),
         launch_arguments={
-            'params_file': parameter_file_path
+            'params_file': parameter_file_path,
+            'namespace': namespace,
+            'container_name': container_name,
+            'use_sim_time': use_sim_time,
+            'autostart': autostart,
         }.items()
     )
 
@@ -70,11 +121,14 @@ def generate_launch_description():
             package='rviz2',
             executable='rviz2',
             name='rviz2',
+            namespace=namespace,
             output='screen',
             arguments=['-d', rviz_config_path],
         )
 
     return LaunchDescription([
+        declare_use_sim_time_cmd,
+        declare_autostart_cmd,
         nav2_container,
         localization_launch,
         navigation_launch,

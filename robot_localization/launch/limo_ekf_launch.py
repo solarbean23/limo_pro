@@ -14,18 +14,37 @@
 from launch import LaunchDescription
 import launch_ros.actions
 import os
-import yaml
-from launch.substitutions import EnvironmentVariable
-import pathlib
-import launch.actions
-from launch.actions import DeclareLaunchArgument
+import sys
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.descriptions import ParameterFile
+from nav2_common.launch import RewrittenYaml
+
+wego_launch_dir = os.path.join(get_package_share_directory('wego'), 'launch')
+if wego_launch_dir not in sys.path:
+    sys.path.append(wego_launch_dir)
+
+from _namespace_util import frame_name, robot_namespace
 
 def generate_launch_description():
     robot_localization_dir = get_package_share_directory('robot_localization')
     parameters_file_dir = os.path.join(robot_localization_dir, 'params')
     parameters_file_path = os.path.join(parameters_file_dir, 'limo_ekf.yaml')
-    os.environ['FILE_PATH'] = str(parameters_file_dir)
+    namespace = robot_namespace()
+    configured_params = ParameterFile(
+        RewrittenYaml(
+            source_file=parameters_file_path,
+            root_key=namespace,
+            param_rewrites={
+                'odom_frame': frame_name('odom', 'odom'),
+                'base_link_frame': frame_name('base_link', 'base_link'),
+                'world_frame': frame_name('odom', 'odom'),
+                'odom0': 'odom',
+                'imu0': 'imu',
+            },
+            convert_types=True,
+        ),
+        allow_substs=True,
+    )
     return LaunchDescription([
         # launch.actions.DeclareLaunchArgument(
         #     'output_final_position',
@@ -38,7 +57,8 @@ def generate_launch_description():
             package='robot_localization', 
             executable='ekf_node', 
             name='ekf_filter_node_odom',
+            namespace=namespace,
 	        output='screen',
-            parameters=[parameters_file_path]           
+            parameters=[configured_params]
            )         
 ])

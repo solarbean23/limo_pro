@@ -61,7 +61,7 @@
                 </geometry>
             </collision>
         </link>
-        <joint type="fixed" name="laser_joint">
+        <joint type="fixed" name="${frame_prefix}_joint">
             <xacro:insert_block name="joint_pose"/>
             <child link="${frame_prefix}_link"/>
             <parent link="${parent_prefix}"/>
@@ -102,7 +102,7 @@
                 </geometry>
             </collision>
         </link>
-        <joint type="fixed" name="imu_joint">
+        <joint type="fixed" name="${frame_prefix}_joint">
             <xacro:insert_block name="joint_pose"/>
             <child link="${frame_prefix}_link"/>
             <parent link="${parent_prefix}"/>

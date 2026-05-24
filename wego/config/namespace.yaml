@@ -1,14 +1,18 @@
 robot:
   namespace: Rescue_Limo_1
-  tf_prefix: Rescue_Limo_1
+  type: Rescue_Limo
+  leader_priority: 0
 
 frames:
   map: map
   odom: odom
-  base: base_footprint
   base_link: base_link
+  laser: laser_link
+  imu: imu_link
 
 topics:
   scan: scan
-  odom: odometry/filtered
+  odom_raw: odom
+  imu: imu
   cmd_vel: cmd_vel
+  odom_filtered: odometry/filtered

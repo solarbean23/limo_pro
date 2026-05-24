@@ -97,6 +97,7 @@ private:
     std::string port_name_;
     std::string odom_frame_;
     std::string base_frame_;
+    std::string imu_frame_;
     std::string odom_topic_name_;
 
     bool pub_odom_tf_ = false;

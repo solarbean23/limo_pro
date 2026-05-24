@@ -33,6 +33,7 @@ class LimoAckermanDriver : public rclcpp::Node
         // parameter
         std::string odom_frame_;
         std::string base_frame_;
+        std::string imu_frame_;
         bool pub_odom_tf_ = false;
 
         // limo serial

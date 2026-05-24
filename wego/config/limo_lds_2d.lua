@@ -1,13 +1,22 @@
 include "map_builder.lua"
 include "trajectory_builder.lua"
 
+local limo_namespace = os.getenv("LIMO_NAMESPACE") or ""
+
+local function prefixed_frame(frame)
+  if limo_namespace == "" then
+    return frame
+  end
+  return limo_namespace .. "/" .. frame
+end
+
 options = {
   map_builder = MAP_BUILDER,
   trajectory_builder = TRAJECTORY_BUILDER,
   map_frame = "map",
-  tracking_frame = "imu_link",
-  published_frame = "odom",
-  odom_frame = "odom",
+  tracking_frame = prefixed_frame("imu_link"),
+  published_frame = prefixed_frame("odom"),
+  odom_frame = prefixed_frame("odom"),
   provide_odom_frame = false,
   publish_frame_projected_to_2d = true,
   use_odometry = true,

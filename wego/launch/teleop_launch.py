@@ -2,9 +2,9 @@ import launch
 
 from launch import LaunchDescription
 
-from launch_ros.actions import Node
+from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.substitutions import FindPackageShare
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import GroupAction, IncludeLaunchDescription, DeclareLaunchArgument
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration, TextSubstitution, PythonExpression
 
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -12,10 +12,19 @@ from launch.conditions import IfCondition
 
 from ament_index_python.packages import get_package_share_directory
 import os
+import sys
+
+wego_launch_dir = os.path.join(get_package_share_directory('wego'), 'launch')
+if wego_launch_dir not in sys.path:
+    sys.path.append(wego_launch_dir)
+
+from _namespace_util import robot_namespace
 
 def generate_launch_description():
     wego_share_dir = get_package_share_directory('wego')
     rviz_config_path = os.path.join(wego_share_dir, 'rviz', 'display.rviz')
+    namespace = robot_namespace()
+    camera_name = f'{namespace}_camera' if namespace else 'camera'
 
     degree = LaunchConfiguration('degree')
     degree_launch_arg = DeclareLaunchArgument(
@@ -35,24 +44,37 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PathJoinSubstitution([FindPackageShare('limo_description'), 'launch', 'load_urdf.launch.py'])
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    FindPackageShare('wego'),
-                    'launch', 
-                    'camera_tilt_launch.py'
-                    ])
-            ]),
-            launch_arguments={
-                'degree': degree
-            }.items()
-        ),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([
+        #         PathJoinSubstitution([
+        #             FindPackageShare('wego'),
+        #             'launch', 
+        #             'camera_tilt_launch.py'
+        #             ])
+        #     ]),
+        #     launch_arguments={
+        #         'degree': degree
+        #     }.items()
+        # ),
         IncludeLaunchDescription(
             PathJoinSubstitution([FindPackageShare('limo_base'), 'launch', 'limo_base.launch.py'])
         ),
-        IncludeLaunchDescription(
-            PathJoinSubstitution([FindPackageShare('orbbec_camera'), 'launch', 'astra_stereo_u3.launch.py'])
-        ),
+        # GroupAction(
+        #     [
+        #         PushRosNamespace(namespace),
+        #         IncludeLaunchDescription(
+        #             PathJoinSubstitution([
+        #                 FindPackageShare('orbbec_camera'),
+        #                 'launch',
+        #                 'astra_stereo_u3.launch.py'
+        #             ]),
+        #             launch_arguments={
+        #                 'camera_namespace': 'camera',
+        #                 'camera_name': camera_name,
+        #             }.items()
+        #         )
+        #     ]
+        # ),
         IncludeLaunchDescription(
             PathJoinSubstitution([FindPackageShare('ydlidar_ros2_driver'), 'launch', 'ydlidar.launch.py'])
         ),

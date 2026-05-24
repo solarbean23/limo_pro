@@ -1,4 +1,5 @@
 import os
+import sys
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -8,9 +9,16 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import ThisLaunchFileDir
 
+wego_launch_dir = os.path.join(get_package_share_directory('wego'), 'launch')
+if wego_launch_dir not in sys.path:
+    sys.path.append(wego_launch_dir)
+
+from _namespace_util import namespace_env, robot_namespace
+
 
 def generate_launch_description():
     wego_share_dir = get_package_share_directory('wego')
+    namespace = robot_namespace()
     cartographer_config_dir = LaunchConfiguration('cartographer_config_dir',
                                     default=os.path.join(wego_share_dir, 'config'))
     configuration_file = LaunchConfiguration('configuration_file', default='limo_lds_2d.lua')
@@ -34,6 +42,8 @@ def generate_launch_description():
             executable='cartographer_node',
             name='cartographer_node',
             remappings=[('odom','odometry/filtered'),],
+            namespace=namespace,
+            additional_env=namespace_env(),
             output='screen',
             arguments=['-configuration_directory', cartographer_config_dir,
                        '-configuration_basename', configuration_file]),

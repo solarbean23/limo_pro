@@ -2,9 +2,19 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
+from ament_index_python.packages import get_package_share_directory
+import os
+import sys
+
+wego_launch_dir = os.path.join(get_package_share_directory('wego'), 'launch')
+if wego_launch_dir not in sys.path:
+    sys.path.append(wego_launch_dir)
+
+from _namespace_util import robot_namespace
 
 
 def generate_launch_description():
+    namespace = robot_namespace()
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
     resolution = LaunchConfiguration('resolution', default='0.05')
     publish_period_sec = LaunchConfiguration('publish_period_sec', default='1.0')
@@ -29,6 +39,7 @@ def generate_launch_description():
             package='cartographer_ros',
             executable='cartographer_occupancy_grid_node',
             name='cartographer_occupancy_grid_node',
+            namespace=namespace,
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=['-resolution', resolution, '-publish_period_sec', publish_period_sec]),

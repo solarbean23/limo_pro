@@ -16,19 +16,36 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch_ros.actions import LifecycleNode
-from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch.actions import LogInfo
+from launch_ros.descriptions import ParameterFile
+from nav2_common.launch import RewrittenYaml
 
-import lifecycle_msgs.msg
 import os
+import sys
+
+wego_launch_dir = os.path.join(get_package_share_directory('wego'), 'launch')
+if wego_launch_dir not in sys.path:
+    sys.path.append(wego_launch_dir)
+
+from _namespace_util import frame_name, robot_namespace
 
 
 def generate_launch_description():
     share_dir = get_package_share_directory('ydlidar_ros2_driver')
+    namespace = robot_namespace()
     parameter_file = LaunchConfiguration('params_file')
-    name = 'ydlidar_ros2_driver_node'
+    configured_params = ParameterFile(
+        RewrittenYaml(
+            source_file=parameter_file,
+            root_key=namespace,
+            param_rewrites={
+                'frame_id': frame_name('laser', 'laser_link'),
+            },
+            convert_types=True,
+        ),
+        allow_substs=True,
+    )
 
     params_declare = DeclareLaunchArgument('params_file',
                                            default_value=os.path.join(
@@ -40,8 +57,8 @@ def generate_launch_description():
                                 name='ydlidar_ros2_driver_node',
                                 output='screen',
                                 emulate_tty=True,
-                                parameters=[parameter_file],
-                                namespace='/',
+                                parameters=[configured_params],
+                                namespace=namespace,
                                 )
     # tf2_node = Node(package='tf2_ros',
     #                 executable='static_transform_publisher',

@@ -39,6 +39,8 @@ LimoDriver::LimoDriver(std::string node_name):rclcpp::Node(node_name),keep_runni
     port_name = this->declare_parameter<std::string>("port_name", port_name);
     odom_frame_ = this->declare_parameter<std::string>("odom_frame", "odom");
     base_frame_ = this->declare_parameter<std::string>("base_frame", "base_link");
+    imu_frame_ = this->declare_parameter<std::string>("imu_frame", "imu_link");
+    odom_topic_name_ = this->declare_parameter<std::string>("odom_topic_name", "odom");
     pub_odom_tf_ = this->declare_parameter<bool>("pub_odom_tf", false);
     use_mcnamu_ = this->declare_parameter<bool>("use_mcnamu", false);
     int control_rate = this->declare_parameter<int>("control_rate", 50);
@@ -47,6 +49,7 @@ LimoDriver::LimoDriver(std::string node_name):rclcpp::Node(node_name),keep_runni
     std::cout << "- port name: " << port_name << std::endl;
     std::cout << "- odom frame name: " << odom_frame_ << std::endl;
     std::cout << "- base frame name: " << base_frame_ << std::endl;
+    std::cout << "- imu frame name: " << imu_frame_ << std::endl;
     std::cout << "- odom topic name: " << pub_odom_tf_ << std::endl;
         
     // ros::NodeHandle nh;createQuaternionFromRPY
@@ -63,12 +66,12 @@ LimoDriver::LimoDriver(std::string node_name):rclcpp::Node(node_name),keep_runni
         motion_mode_ = MODE_MCNAMU;
     }
     tf_broadcaster_=std::make_shared<tf2_ros::TransformBroadcaster>(*this);
-    odom_publisher_=this->create_publisher<nav_msgs::msg::Odometry>("/odom",50);
-    status_publisher_ = this->create_publisher<limo_msgs::msg::LimoStatus>("/limo_status",50);
-    imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("/imu",10);
+    odom_publisher_=this->create_publisher<nav_msgs::msg::Odometry>(odom_topic_name_,50);
+    status_publisher_ = this->create_publisher<limo_msgs::msg::LimoStatus>("limo_status",50);
+    imu_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu",10);
 
     motion_cmd_sub_= this->create_subscription<geometry_msgs::msg::Twist>(
-        "/cmd_vel",10,std::bind(&LimoDriver::twistCmdCallback,this,std::placeholders::_1));
+        "cmd_vel",10,std::bind(&LimoDriver::twistCmdCallback,this,std::placeholders::_1));
 
     // odom_publisher_ = nh.advertise<nav_msgs::Odometry>("/odom", 50, true);
     // status_publisher_ = nh.advertise<limo_base::LimoStatus>("/limo_status", 10, true);
@@ -469,7 +472,7 @@ void LimoDriver::publishIMUData(double stamp) {
     geometry_msgs::msg::TransformStamped t;  
     
     imu_msg.header.stamp = rclcpp::Time(RCL_S_TO_NS(stamp));
-    imu_msg.header.frame_id = "imu_link";
+    imu_msg.header.frame_id = imu_frame_;
 
     imu_msg.linear_acceleration.x = imu_data_.accel_x;
     imu_msg.linear_acceleration.y = imu_data_.accel_y;
@@ -662,5 +665,4 @@ double LimoDriver::convertCentralAngleToInner(double central_angle) {
 }
 
 }
-
 
